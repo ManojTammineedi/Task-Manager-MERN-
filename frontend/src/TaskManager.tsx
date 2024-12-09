@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FaCheck,
   FaPencilAlt,
@@ -10,12 +10,17 @@ import { ToastContainer } from "react-toastify";
 import { CreateTask, DeleteTaskById, GetAllTask, UpdateTaskById } from "./api";
 import { notify } from "./utils";
 
-// import { notify } from './utils';
+interface Task {
+  _id: string;
+  taskName: string;
+  isDone: boolean;
+}
+
 function TaskManager() {
   const [input, setInput] = useState("");
-  const [tasks, setTasks] = useState([]);
-  const [copyTasks, setCopyTasks] = useState([]);
-  const [updateTasks, setUpdateTasks] = useState(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [copyTasks, setCopyTasks] = useState<Task[]>([]);
+  const [updateTasks, setUpdateTasks] = useState<Task | null>(null);
   const handleTask = () => {
     if (updateTasks && input) {
       console.log("update api call");
@@ -27,7 +32,6 @@ function TaskManager() {
       handleUpdateItem(obj);
     } else if (updateTasks === null && input) {
       console.log("create api call");
-
       handleAddTask();
     }
     setInput("");
@@ -88,46 +92,45 @@ function TaskManager() {
     }
   };
 
-  const handleCheckAndUncheck = async (item) => {
-    const { _id, isDone, taskName } = item;
-    const obj = {
-      taskName,
-      isDone: !isDone,
+  const handleCheckAndUncheck = async (task: Task) => {
+    // const { _id, isDone, taskName } = item;
+    // const obj = {
+    //   taskName,
+    //   isDone: !isDone,
+    // };
+    const updateTasks = {
+      taskName: task.taskName,
+      isDone: !task.isDone,
     };
     try {
-      const { success, message } = await UpdateTaskById(_id, obj);
+      const { success, message } = await UpdateTaskById(task._id, updateTasks);
       if (success) {
-        //show success toast
         notify(message, "success");
       } else {
-        //show error toast
         notify(message, "error");
       }
       fetchAllTasks();
     } catch (err) {
       console.error(err);
-      notify("Failed to create task", "error");
+      notify("Failed to update task", "error");
     }
   };
-  const handleUpdateItem = async (item) => {
-    const { _id, isDone, taskName } = item;
-    const obj = {
-      taskName,
-      isDone: isDone,
-    };
-    const { success, message } = await UpdateTaskById(_id, obj);
+  const handleUpdateItem = async (task: Task) => {
     try {
+      const { success, message } = await UpdateTaskById(task._id, task);
       if (success) {
         notify(message, "success");
       } else {
         notify(message, "error");
       }
       fetchAllTasks();
-    } catch (error) {
-      notify("Failed to updated the task", "success");
+      setUpdateTasks(null);
+    } catch (err) {
+      console.error(err);
+      notify("Failed to update the task", "error");
     }
   };
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
     const oldTasks = [...copyTasks];
     const results = oldTasks.filter((item) =>
@@ -174,17 +177,17 @@ function TaskManager() {
 
       {/* List of items */}
       <div className="d-flex flex-column w-100">
-        {tasks.map((item) => (
-          <div key={item._id} className="d-flex flex-column w-100">
+        {tasks.map((task) => (
+          <div key={task._id} className="d-flex flex-column w-100">
             <div
               className="m-2 p-2 border bg-light
                     w-100 rounded-3 d-flex justify-content-between
                     align-items-center"
             >
               <span
-                className={item.isDone ? "text-decoration-line-through" : ""}
+                className={task.isDone ? "text-decoration-line-through" : ""}
               >
-                {item.taskName}
+                {task.taskName}
               </span>
 
               <div className="">
@@ -192,7 +195,7 @@ function TaskManager() {
                   className="btn btn-success
                                 btn-sm me-2"
                   type="button"
-                  onClick={() => handleCheckAndUncheck(item)}
+                  onClick={() => handleCheckAndUncheck(task)}
                 >
                   <FaCheck />
                 </button>
@@ -200,14 +203,14 @@ function TaskManager() {
                   className="btn btn-primary
                                 btn-sm me-2"
                   type="button"
-                  onClick={() => setUpdateTasks(item)}
+                  onClick={() => setUpdateTasks(task)}
                 >
                   <FaPencilAlt />
                 </button>
                 <button
                   className="btn btn-danger
                                 btn-sm me-2"
-                  onClick={() => handleDelete(item._id)}
+                  onClick={() => handleDelete(task._id)}
                   type="button"
                 >
                   <FaTrash />
